@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Venn Diagram Drill — Categorical Logic</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #F7F4EE;
+    --surface: #FFFFFF;
+    --surface2: #F0ECE4;
+    --ink: #1A1714;
+    --ink2: #5A5650;
+    --ink3: #9A948E;
+    --accent: #2B4C7E;
+    --accent-light: #E6EEF8;
+    --success: #2D6A4F;
+    --success-bg: #D8F3DC;
+    --danger: #A82020;
+    --danger-bg: #FDECEA;
+    --warn: #7D4E00;
+    --warn-bg: #FFF3CD;
+    --border: rgba(0,0,0,0.10);
+    --border-hi: rgba(0,0,0,0.15);
+    --radius: 10px;
+    --radius-lg: 16px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Instrument Sans', sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 2rem 1rem 4rem;
+  }
+
+  header { text-align: center; margin-bottom: 2.5rem; }
+
+  header h1 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2.4rem;
+    letter-spacing: -0.5px;
+    line-height: 1.1;
+  }
+
+  header h1 em { font-style: italic; color: var(--accent); }
+  header p { font-size: 0.875rem; color: var(--ink3); margin-top: 0.4rem; }
+
+  .container { width: 100%; max-width: 580px; }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.7rem;
+    text-align: center;
+  }
+
+  .stat-value {
+    font-family: 'DM Serif Display', serif;
+    font-size: 1.6rem;
+    color: var(--ink);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 0.62rem;
+    color: var(--ink3);
+    font-family: 'DM Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-top: 0.2rem;
+  }
+
+  .progress-wrap { margin-bottom: 1.5rem; }
+
+  .progress-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.75rem;
+    color: var(--ink3);
+    margin-bottom: 0.4rem;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .progress-track { height: 4px; background: var(--surface2); border-radius: 99px; overflow: hidden; }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 99px;
+    transition: width 0.5s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  .woodpecker-notice {
+    display: none;
+    font-size: 0.75rem;
+    color: var(--warn);
+    background: var(--warn-bg);
+    border-radius: var(--radius);
+    padding: 0.5rem 0.85rem;
+    margin-bottom: 1rem;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+    padding: 1.75rem;
+    margin-bottom: 0.75rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--accent);
+    opacity: 0.6;
+  }
+
+  .card-label {
+    font-size: 0.68rem;
+    font-family: 'DM Mono', monospace;
+    letter-spacing: 0.1em;
+    color: var(--ink3);
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+
+  .stmt-box {
+    background: var(--surface2);
+    border-left: 3px solid var(--accent);
+    border-radius: var(--radius);
+    padding: 1rem 1.25rem;
+    font-family: 'DM Mono', monospace;
+    font-size: 1.1rem;
+    color: var(--ink);
+    margin-bottom: 1.5rem;
+  }
+
+  .question {
+    font-size: 1rem;
+    color: var(--ink2);
+    margin-bottom: 1.25rem;
+    font-style: italic;
+    font-family: 'DM Serif Display', serif;
+  }
+
+  .venn-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .venn-option {
+    border: 2px solid var(--border-hi);
+    border-radius: var(--radius);
+    background: var(--surface);
+    cursor: pointer;
+    padding: 0.6rem 0.6rem 0.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.35rem;
+    transition: border-color 0.15s, background 0.15s, transform 0.1s;
+  }
+
+  .venn-option:hover:not([disabled]) {
+    border-color: var(--accent);
+    background: var(--accent-light);
+    transform: translateY(-1px);
+  }
+
+  .venn-option canvas { display: block; border-radius: 4px; }
+
+  .venn-option .opt-label {
+    font-size: 0.68rem;
+    font-family: 'DM Mono', monospace;
+    color: var(--ink3);
+  }
+
+  .venn-option.correct      { border-color: var(--success); background: var(--success-bg); }
+  .venn-option.wrong        { border-color: var(--danger);  background: var(--danger-bg); }
+  .venn-option.show-correct { border-color: var(--success); background: var(--success-bg); }
+
+  .feedback {
+    display: none;
+    border-radius: var(--radius);
+    padding: 0.9rem 1.1rem;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    margin-top: 0.5rem;
+  }
+
+  .feedback.correct { display: block; background: var(--success-bg); color: var(--success); }
+  .feedback.wrong   { display: block; background: var(--danger-bg);  color: var(--danger); }
+  .feedback strong  { font-weight: 600; }
+
+  .next-btn {
+    display: none;
+    width: 100%;
+    margin-top: 1rem;
+    padding: 0.85rem;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'Instrument Sans', sans-serif;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+
+  .next-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+  #complete-screen {
+    display: none;
+    text-align: center;
+    padding: 3rem 2rem;
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    border: 1px solid var(--border);
+  }
+
+  #complete-screen h2 {
+    font-family: 'DM Serif Display', serif;
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+  }
+
+  #complete-screen p { color: var(--ink2); margin-bottom: 1.5rem; font-size: 0.9rem; }
+
+  #complete-screen button {
+    padding: 0.75rem 2rem;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius);
+    font-family: 'Instrument Sans', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Venn <em>Diagrams</em></h1>
+  <p>Match categorical statements to their correct diagram</p>
+</header>
+
+<div class="container">
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-value" id="s-correct">0</div>
+      <div class="stat-label">Correct</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="s-streak">0</div>
+      <div class="stat-label">Streak</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="s-remaining">4</div>
+      <div class="stat-label">Remaining</div>
+    </div>
+  </div>
+
+  <div class="progress-wrap">
+    <div class="progress-meta">
+      <span id="prog-label">Question 1</span>
+      <span id="prog-pct">0% mastered</span>
+    </div>
+    <div class="progress-track">
+      <div class="progress-fill" id="prog-fill" style="width:0%"></div>
+    </div>
+  </div>
+
+  <div class="woodpecker-notice" id="wp-notice">↩ Revisiting a missed form — woodpecker mode</div>
+
+  <div class="card" id="question-card">
+    <div class="card-label">Identify the Venn diagram</div>
+    <div class="stmt-box" id="stmt-box"></div>
+    <div class="question">Which diagram correctly represents this statement?</div>
+    <div class="venn-grid" id="venn-grid"></div>
+    <div class="feedback" id="feedback"></div>
+    <button class="next-btn" id="next-btn">Next question →</button>
+  </div>
+
+  <div id="complete-screen">
+    <h2>All forms mastered!</h2>
+    <p id="complete-msg"></p>
+    <button onclick="init()">Drill again</button>
+  </div>
+</div>
+
+<script>
+// ─── Geometry (computed once) ─────────────────────────────────────────────────
+const W = 180, H = 110;
+const R = 38;
+const CY = H / 2;
+const SCX = W / 2 - 24;  // S circle center x
+const PCX = W / 2 + 24;  // P circle center x
+const D = PCX - SCX;     // distance between centers = 48
+
+// Half-angle at each center subtended to the two intersection points.
+// For equal circles: alpha = arccos((D/2) / R)
+const ALPHA = Math.acos((D / 2) / R);
+
+// x-coordinate of the intersection chord (midpoint between centers, equal radii)
+const CHORD_X = (SCX + PCX) / 2;
+
+const SHADE  = 'rgba(43, 76, 126, 0.22)';
+const STROKE = '#2B4C7E';
+const LBLCOL = '#9A948E';
+const XCOL   = '#A82020';
+
+// ─── Venn drawing ─────────────────────────────────────────────────────────────
+function drawVenn(canvas, type) {
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width        = W * dpr;
+  canvas.height       = H * dpr;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+
+  // --- Step 1: white-fill both circles so they sit clean on the page bg ---
+  ctx.fillStyle = '#FFFFFF';
+  ctx.beginPath(); ctx.arc(SCX, CY, R, 0, Math.PI * 2); ctx.fill();
+  ctx.beginPath(); ctx.arc(PCX, CY, R, 0, Math.PI * 2); ctx.fill();
+
+  // --- Step 2: shading ---
+  ctx.fillStyle = SHADE;
+
+  if (type === 'A') {
+    // Shade S-only crescent (inside S, outside P).
+    //
+    // The intersection points, measured from S's center, are at angles
+    // -ALPHA (upper) and +ALPHA (lower) — both on the RIGHT side of S.
+    // The S-only crescent is the LEFT bulge of S.
+    //
+    // Arc 1 — long left arc of S:
+    //   start: -ALPHA (upper intersection point)
+    //   end:   +ALPHA (lower intersection point)
+    //   anticlockwise = true  →  sweeps westward (the long way, through π). ✓
+    //
+    // Arc 2 — short left arc of P to close the shape:
+    //   From P's center those same intersection points are at:
+    //     upper: -(π - ALPHA)   lower: +(π - ALPHA)
+    //   We arrive at the lower point (+ALPHA on S = +(π-ALPHA) on P).
+    //   We need to reach the upper point (-(π-ALPHA) on P).
+    //   Clockwise (anticlockwise=false) from +(π-ALPHA) through π to -(π-ALPHA)
+    //   is the short arc on the LEFT side of P (the side facing S). ✓
+    ctx.beginPath();
+    ctx.arc(SCX, CY, R,  -ALPHA,           +ALPHA,            true);   // long left arc of S
+    ctx.arc(PCX, CY, R,  Math.PI - ALPHA,  -(Math.PI - ALPHA), false); // short left arc of P
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  if (type === 'E') {
+    // Shade intersection lens (inside both S and P).
+    //
+    // Arc 1 — short right arc of S:
+    //   start: -ALPHA, end: +ALPHA, anticlockwise=false → sweeps eastward. ✓
+    //
+    // Arc 2 — short left arc of P:
+    //   start: +(π-ALPHA), end: +(π+ALPHA), anticlockwise=false → sweeps eastward
+    //   (left side of P, from upper to lower intersection point). ✓
+    ctx.beginPath();
+    ctx.arc(SCX, CY, R,  -ALPHA,           +ALPHA,            false); // short right arc of S
+    ctx.arc(PCX, CY, R,  Math.PI - ALPHA,  Math.PI + ALPHA,   false); // short left arc of P
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // I and O use X marks, no shading.
+
+  // --- Step 3: circle outlines ---
+  ctx.lineWidth   = 1.5;
+  ctx.strokeStyle = STROKE;
+  ctx.beginPath(); ctx.arc(SCX, CY, R, 0, Math.PI * 2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(PCX, CY, R, 0, Math.PI * 2); ctx.stroke();
+
+  // --- Step 4: X marks ---
+  if (type === 'I') {
+    // X at centroid of lens = midpoint between the two circle centers
+    drawX(ctx, (SCX + PCX) / 2, CY);
+  }
+
+  if (type === 'O') {
+    // X at centroid of S-only crescent
+    // = midpoint between the leftmost point of S (SCX - R) and the chord (CHORD_X)
+    drawX(ctx, (SCX - R + CHORD_X) / 2, CY);
+  }
+
+  // --- Step 5: circle labels ---
+  ctx.fillStyle    = LBLCOL;
+  ctx.font         = "500 11px 'DM Mono', monospace";
+  ctx.textAlign    = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('S', SCX - R + 9, CY);
+  ctx.fillText('P', PCX + R - 9, CY);
+}
+
+function drawX(ctx, x, y) {
+  const s = 7;
+  ctx.save();
+  ctx.strokeStyle = XCOL;
+  ctx.lineWidth   = 2;
+  ctx.lineCap     = 'round';
+  ctx.beginPath(); ctx.moveTo(x - s, y - s); ctx.lineTo(x + s, y + s); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(x + s, y - s); ctx.lineTo(x - s, y + s); ctx.stroke();
+  ctx.restore();
+}
+
+// ─── Content ──────────────────────────────────────────────────────────────────
+const STATEMENTS = {
+  A: 'All S are P.',
+  E: 'No S are P.',
+  I: 'Some S are P.',
+  O: 'Some S are not P.',
+};
+
+const LABELS = {
+  A: 'S-only shaded',
+  E: 'Intersection shaded',
+  I: 'X in intersection',
+  O: 'X in S-only',
+};
+
+const EXPLANATIONS = {
+  A: 'The S-only region is shaded — nothing in S falls outside P.',
+  E: 'The intersection is shaded — nothing belongs to both S and P.',
+  I: 'An X marks the intersection — something exists in both S and P.',
+  O: 'An X marks the S-only region — something in S is not in P.',
+};
+
+// ─── Woodpecker engine ────────────────────────────────────────────────────────
+const FORMS = ['A', 'E', 'I', 'O'];
+const CONSEC_NEEDED = 5;
+
+let state = {}, queue = [], totalCorrect = 0, streak = 0, asked = 0, current = null;
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function masteredCount() { return FORMS.filter(f => state[f].mastered).length; }
+function remainingCount() { return FORMS.length - masteredCount(); }
+
+function init() {
+  state = {};
+  FORMS.forEach(f => { state[f] = { consecutive: 0, mastered: false, missCount: 0 }; });
+  queue = shuffle([...FORMS]);
+  totalCorrect = 0; streak = 0; asked = 0;
+  document.getElementById('complete-screen').style.display = 'none';
+  document.getElementById('question-card').style.display = 'block';
+  updateStats();
+  nextQuestion();
+}
+
+function nextQuestion() {
+  queue = queue.filter(f => !state[f].mastered);
+  if (queue.length === 0) { showComplete(); return; }
+
+  current = queue[0];
+  queue.push(queue.shift());
+  asked++;
+
+  document.getElementById('wp-notice').style.display =
+    state[current].missCount > 0 ? 'block' : 'none';
+  document.getElementById('stmt-box').textContent = STATEMENTS[current];
+  document.getElementById('feedback').className = 'feedback';
+  document.getElementById('feedback').innerHTML = '';
+  document.getElementById('next-btn').style.display = 'none';
+
+  renderOptions(shuffle([...FORMS]));
+  updateStats();
+  updateProgress();
+}
+
+function renderOptions(options) {
+  const grid = document.getElementById('venn-grid');
+  grid.innerHTML = '';
+
+  options.forEach(form => {
+    const btn = document.createElement('button');
+    btn.className = 'venn-option';
+    btn.dataset.form = form;
+
+    const canvas = document.createElement('canvas');
+    btn.appendChild(canvas);
+
+    const lbl = document.createElement('span');
+    lbl.className = 'opt-label';
+    lbl.textContent = LABELS[form];
+    btn.appendChild(lbl);
+
+    btn.addEventListener('click', () => handleChoice(form));
+    grid.appendChild(btn);
+    drawVenn(canvas, form);
+  });
+}
+
+function handleChoice(chosen) {
+  const correct = current;
+  const isCorrect = chosen === correct;
+
+  document.querySelectorAll('.venn-option').forEach(btn => {
+    btn.setAttribute('disabled', true);
+    const f = btn.dataset.form;
+    if (f === correct &&  isCorrect) btn.classList.add('correct');
+    if (f === correct && !isCorrect) btn.classList.add('show-correct');
+    if (f === chosen  && !isCorrect) btn.classList.add('wrong');
+  });
+
+  const fb = document.getElementById('feedback');
+
+  if (isCorrect) {
+    state[correct].consecutive++;
+    if (state[correct].consecutive >= CONSEC_NEEDED) state[correct].mastered = true;
+    totalCorrect++;
+    streak++;
+    fb.className = 'feedback correct';
+    fb.innerHTML = `<strong>Correct!</strong> ${EXPLANATIONS[correct]}` +
+      (state[correct].mastered ? ' <strong>Form mastered!</strong>' : '');
+  } else {
+    state[correct].consecutive = 0;
+    state[correct].missCount++;
+    streak = 0;
+    queue = queue.filter(f => f !== correct);
+    queue.unshift(correct);
+    fb.className = 'feedback wrong';
+    fb.innerHTML = `<strong>Not quite.</strong> ${EXPLANATIONS[correct]}`;
+  }
+
+  document.getElementById('next-btn').style.display = 'block';
+  updateStats();
+}
+
+function updateStats() {
+  document.getElementById('s-correct').textContent = totalCorrect;
+  document.getElementById('s-streak').textContent  = streak;
+  document.getElementById('s-remaining').textContent = remainingCount();
+}
+
+function updateProgress() {
+  const pct = Math.round((masteredCount() / FORMS.length) * 100);
+  document.getElementById('prog-fill').style.width = pct + '%';
+  document.getElementById('prog-label').textContent = `Question ${asked}`;
+  document.getElementById('prog-pct').textContent   = pct + '% mastered';
+}
+
+function showComplete() {
+  document.getElementById('question-card').style.display = 'none';
+  document.getElementById('complete-screen').style.display = 'block';
+  document.getElementById('complete-msg').textContent =
+    `You answered ${totalCorrect} questions correctly in ${asked} attempts, mastering all four categorical forms.`;
+}
+
+document.getElementById('next-btn').addEventListener('click', nextQuestion);
+init();
+</script>
+</body>
+</html>
